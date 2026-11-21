@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Little Wonder</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Little Wonder">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#fbf7ef">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<style>
+body{margin:0;background:#fbf7ef;font-family:-apple-system,system-ui,sans-serif;-webkit-text-size-adjust:100%}
+#lw{--font-voice:'Iowan Old Style',Palatino,Georgia,serif;max-width:480px;min-height:100vh;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) 12px calc(20px + env(safe-area-inset-bottom));color:#4b4657;font-size:15px;line-height:1.5}
+#lw *{box-sizing:border-box}
+#lw .ti{vertical-align:-2px}
+#lw .sf{font-family:var(--font-voice)}
+#lw .cd{background:#fffdf9;border:1px solid #ece4d6;border-radius:20px;padding:14px;margin-top:12px}
+#lw button{font:inherit;color:#4b4657;background:#fffdf9;border:1px solid #e3dac9;border-radius:14px;min-height:44px;padding:0 14px;cursor:pointer;-webkit-appearance:none;appearance:none;-webkit-tap-highlight-color:transparent}
+#lw button.pr{background:#7f9a78;border-color:#7f9a78;color:#fff}
+#lw button.gh{border-color:transparent;background:transparent}
+#lw input,#lw textarea{font:inherit;font-size:16px;color:#4b4657;background:#fff;border:1px solid #e3dac9;border-radius:12px;padding:8px 10px;width:100%;min-height:44px;-webkit-appearance:none;appearance:none}
+#lw textarea{min-height:110px;line-height:1.5}
+#lw .mu{color:#857f92;font-size:13px}
+#lw .hd{font-size:17px;font-weight:500;margin:0 0 8px;color:#4b4657}
+#lw-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;background:#f3ecdf;border-radius:18px;padding:4px;margin-top:12px}
+#lw-nav button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:11px;padding:4px 0;min-height:50px;color:#857f92}
+#lw-nav button.on{background:#fffdf9;color:#4b4657}
+#lw .row{display:flex;align-items:center;gap:10px}
+#lw .g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#lw .tile{border-radius:16px;padding:10px 12px}
+#lw .bar{height:10px;border-radius:6px;background:#efe8da;overflow:hidden}
+#lw .bar i{display:block;height:100%;border-radius:6px}
+#lw-orb{width:170px;height:170px;border-radius:50%;background:#d6cbe8;display:flex;align-items:center;justify-content:center;transform:scale(.55);transition:transform 4s ease-in-out}
+#lw-orb div{width:110px;height:110px;border-radius:50%;background:#c3d9ea}
+</style>
+</head>
+<body>
+<div id="lw">
+<div style="text-align:center">
+<div class="mu" style="letter-spacing:.08em">Little Wonder ♡</div>
+<div class="sf" style="font-size:26px;line-height:1.25;color:#4b4657">Hello, little love ♡</div>
+</div>
+<div id="lw-nav"></div>
+<div id="lw-toast" class="mu" style="text-align:center;color:#5f7d58;min-height:0"></div>
+<div id="lw-main"></div>
+</div>
+<script>
+(function(){
+const KEY='littleWonderPregnancyV2',DAY=864e5,INK='#4b4657';
+const root=document.getElementById('lw'),main=root.querySelector('#lw-main'),nav=root.querySelector('#lw-nav'),toastEl=root.querySelector('#lw-toast');
+const pad=n=>String(n).padStart(2,'0');
+const todayKey=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const utc=k=>{const p=k.split('-');return Date.UTC(+p[0],p[1]-1,+p[2])};
+const isKey=k=>typeof k==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(k)&&!isNaN(utc(k));
+const diff=(a,b)=>Math.round((utc(a)-utc(b))/DAY);
+const addDays=(k,n)=>{const d=new Date(utc(k)+n*DAY);return d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate())};
+const fmt=(k,o)=>new Date(utc(k)).toLocaleDateString('en-AU',Object.assign({timeZone:'UTC',day:'numeric',month:'long',year:'numeric'},o||{}));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ti=(n,sz)=>`<i class="ti ti-${n}" style="font-size:${sz||20}px" aria-hidden="true"></i>`;
+const DEF=()=>({due:'2027-08-04',habits:[{id:'h1',name:'Probiotic shot'},{id:'h2',name:'Folate'},{id:'h3',name:'Creatine'}],checks:{},water:{},goal:8,ml:250,weights:[],wishes:'',notes:{},favs:[],waves:[]});
+const clamp=(v,a,b,d)=>{v=Math.round(+v);return isFinite(v)?Math.max(a,Math.min(b,v)):d};
+function norm(r){const s=DEF();if(!r||typeof r!=='object')return s;
+const due=r.due||r.dueDate;if(isKey(due))s.due=due;
+if(Array.isArray(r.habits))s.habits=r.habits.map((h,i)=>typeof h==='string'?{id:h,name:h}:{id:String(h&&(h.id||h.name)||'h'+i),name:String(h&&(h.name||h.label)||'Ritual')});
+if(r.checks&&typeof r.checks==='object')for(const k in r.checks){if(!isKey(k))continue;const c=r.checks[k],o={};if(Array.isArray(c))c.forEach(x=>o[String(x)]=true);else if(c&&typeof c==='object')for(const j in c)if(c[j])o[j]=true;if(Object.keys(o).length)s.checks[k]=o}
+if(r.water&&typeof r.water==='object')for(const k in r.water){if(!isKey(k))continue;const v=r.water[k];const n=clamp(typeof v==='object'&&v?v.glasses:v,0,40,0);if(n>0)s.water[k]=n}
+s.goal=clamp(r.goal!=null?r.goal:r.waterGoal,1,20,8);s.ml=clamp(r.ml!=null?r.ml:r.glassMl,50,1000,250);
+if(Array.isArray(r.weights))s.weights=r.weights.map(x=>({date:x&&x.date,kg:Math.round(parseFloat(x&&(x.kg!=null?x.kg:x.weight))*10)/10})).filter(x=>isKey(x.date)&&x.kg>0).sort((a,b)=>utc(a.date)-utc(b.date));
+const w=r.wishes!=null?r.wishes:r.birthWishes;if(typeof w==='string')s.wishes=w;
+if(r.notes&&typeof r.notes==='object')for(const k in r.notes)if(isKey(k)&&typeof r.notes[k]==='string'&&r.notes[k])s.notes[k]=r.notes[k];
+if(Array.isArray(r.favs))s.favs=r.favs.filter(x=>typeof x==='string');
+if(Array.isArray(r.waves))s.waves=r.waves.filter(x=>x&&x.e>x.s).slice(-30);
+return s}
+let durable=true;
+function load(){try{const r=localStorage.getItem(KEY);return norm(r?JSON.parse(r):null)}catch(e){durable=false;return DEF()}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){durable=false}}
+let S=load(),tab='today',sel=todayKey(),affOff=0,wForm={d:null,k:''},delArm=null,impArm=false,waveStart=null,tTimer=null;
+const breath={on:false,timer:null,mode:0};
+function toast(m){toastEl.textContent=m;toastEl.style.padding='8px 0 0';clearTimeout(tTimer);tTimer=setTimeout(()=>{toastEl.textContent='';toastEl.style.padding='0'},2600)}
+function preg(k){const lmp=addDays(S.due,-280),days=diff(k,lmp),left=diff(S.due,k),c=Math.max(0,days),w=Math.floor(c/7);
+return{lmp,days,left,w,d:c%7,tri:w<14?1:w<28?2:3,pct:Math.max(0,Math.min(100,c/280*100))}}
+const R=(n,rx,ry,c,k,f)=>({n,t:'r',rx,ry,c,k,f:f||''}),P=(n,c,k,f)=>({n,t:'p',c,k,f:f||''});
+const SZ=[];const put=(a,b,o)=>{for(let i=a;i<=b;i++)SZ[i]=o};
+put(0,2,{n:'tiny twinkle',t:'star',c:'#f7e08f',k:'#e2c25c'});
+put(3,4,{n:'poppy seed',t:'poppy',c:'#8f9bbd',k:'#66739a'});
+SZ[5]={n:'sesame seed',t:'sesame',c:'#f5e6c3',k:'#d6bd88'};
+SZ[6]={n:'lentil',t:'lentil',c:'#eaa074',k:'#cc7a50'};
+SZ[7]=R('blueberry',34,32,'#8fa6dc','#6680bd','c');
+SZ[8]={n:'raspberry',t:'rasp',c:'#ee8fa3',k:'#d0657d'};
+SZ[9]=R('cherry',30,29,'#e8717a','#c9525c','S');
+SZ[10]={n:'strawberry',t:'straw',c:'#f0807f',k:'#d45f60'};
+SZ[11]=P('fig','#a98bc0','#8469a0','s');
+SZ[12]=R('lime',37,34,'#b9d77f','#93b85a','n');
+SZ[13]=R('lemon',44,31,'#f8e27a','#e3c64e','n');
+SZ[14]=R('peach',41,39,'#f9c4a2','#eb9f7c','slbr');
+SZ[15]=R('apple',41,39,'#ea8a80','#cf675f','sl');
+SZ[16]=P('avocado','#8db26a','#6a8f4f','a');
+SZ[17]=P('pear','#d7e08a','#aebb5c','sl');
+SZ[18]=R('capsicum',40,42,'#ef8377','#cf5f55','gT');
+SZ[19]=R('mango',45,35,'#f9c15f','#e59f3c','slb');
+SZ[20]={n:'banana',t:'banana',c:'#f9e07c',k:'#e0bd45'};
+SZ[21]={n:'carrot',t:'carrot',c:'#f6a567',k:'#dd8344'};
+SZ[22]=R('sweet potato',52,27,'#e3a184','#c57e60','n');
+SZ[23]=R('grapefruit',44,42,'#f8b890','#e59467','l');
+SZ[24]={n:'corn cob',t:'corn',c:'#f9df7b',k:'#e3bf47'};
+SZ[25]={n:'cauliflower',t:'cloud',c:'#fbf4e2',k:'#dccfae',v:1};
+SZ[26]=R('zucchini',56,21,'#a6cb87','#7ba75e','n');
+SZ[27]={n:'broccoli',t:'cloud',c:'#a3cf8c',k:'#76aa62'};
+SZ[28]=P('eggplant','#a488c4','#8166a6','e');
+SZ[29]=P('butternut pumpkin','#f3cf9a','#dcab6a','s');
+SZ[30]=R('cabbage',46,43,'#d2e6b4','#a4c586','g');
+SZ[31]=R('coconut',44,42,'#bd9877','#98724f','g');
+SZ[32]=R('rockmelon',46,44,'#efdcae','#cdb57c','xs');
+SZ[33]={n:'pineapple',t:'pine',c:'#f6cf6b',k:'#dba93d'};
+SZ[34]=R('honeydew melon',48,45,'#e0edb9','#b5cd85','s');
+SZ[35]=R('spaghetti squash',53,38,'#f7e08a','#dfc154','s');
+SZ[36]=P('papaya','#f7b471','#de8f48','s');
+SZ[37]=R('pomelo',48,47,'#e9ea9f','#c4c66c','sl');
+SZ[38]=R('pumpkin',53,41,'#f5ae70','#db8848','gT');
+SZ[39]=R('small watermelon',50,44,'#a5d295','#63a372','w');
+SZ[40]=R('watermelon',55,48,'#a5d295','#63a372','w');
+let uid=0;
+const GR='#a9cf8f',GK='#7fae68';
+function face(y,f){f=f||1;return `<circle cx="${-11*f}" cy="${y}" r="${3.2*f}" fill="${INK}"/><circle cx="${11*f}" cy="${y}" r="${3.2*f}" fill="${INK}"/><circle cx="${-10*f}" cy="${y-1.2*f}" r="${1.1*f}" fill="#fff"/><circle cx="${12*f}" cy="${y-1.2*f}" r="${1.1*f}" fill="#fff"/><path d="M${-5*f},${y+5*f} Q0,${y+11*f} ${5*f},${y+5*f}" fill="none" stroke="${INK}" stroke-width="${2.2*f}" stroke-linecap="round"/><circle cx="${-19*f}" cy="${y+6*f}" r="${5*f}" fill="#f29c9c" opacity=".55"/><circle cx="${19*f}" cy="${y+6*f}" r="${5*f}" fill="#f29c9c" opacity=".55"/>`}
+const stem=(y,th)=>`<path d="M0,${y+4} q2,-10 8,-16" fill="none" stroke="${th?GK:'#9a7656'}" stroke-width="${th?8:4}" stroke-linecap="round"/>`;
+const leaf=y=>`<path d="M6,${y-6} q16,-18 30,-6 q-14,12 -30,6z" fill="${GR}" stroke="${GK}" stroke-width="2" stroke-linejoin="round"/>`;
+const shine=(x,y,r)=>`<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r*.6}" fill="#fff" opacity=".5" transform="rotate(-30 ${x} ${y})"/>`;
+const cap=y=>`<path transform="translate(0,${y})" d="M-24,0 Q-12,-14 0,-4 Q12,-14 24,0 Q12,6 9,14 Q0,4 -9,14 Q-12,6 -24,0Z" fill="${GR}" stroke="${GK}" stroke-width="2.5" stroke-linejoin="round"/>`;
+const PEAR='M0,-50 C17,-50 21,-24 30,-6 C45,24 29,54 0,54 C-29,54 -45,24 -30,-6 C-21,-24 -17,-50 0,-50Z';
+const mini=(x,y,c,k)=>`<ellipse cx="${x}" cy="${y}" rx="5" ry="4" fill="${c}" stroke="${k}" stroke-width="1.5"/>`;
+function body(o){const c=o.c,k=o.k,f=o.f||'';let s='',d='';
+if(o.t==='r'){const rx=o.rx,ry=o.ry;
+if(f.includes('n'))s+=`<ellipse cx="${-rx}" cy="0" rx="8" ry="7" fill="${c}" stroke="${k}" stroke-width="3"/><ellipse cx="${rx}" cy="0" rx="8" ry="7" fill="${c}" stroke="${k}" stroke-width="3"/>`;
+if(f.includes('S'))s+=`<path d="M0,${-ry+4} q4,-30 26,-40" fill="none" stroke="${GK}" stroke-width="4" stroke-linecap="round"/><path d="M26,${-ry-36} q16,-12 28,0 q-14,10 -28,0z" fill="${GR}" stroke="${GK}" stroke-width="2"/>`;
+if(f.includes('s'))s+=stem(-ry);if(f.includes('T'))s+=stem(-ry,1);if(f.includes('l'))s+=leaf(-ry);
+s+=`<ellipse rx="${rx}" ry="${ry}" fill="${c}" stroke="${k}" stroke-width="3"/>`;
+if(f.includes('g'))s+=[-1.2,-.6,.6,1.2].map(m=>`<path d="M0,${-ry+2} Q${m*rx},0 0,${ry-2}" fill="none" stroke="${k}" stroke-width="2" opacity=".5"/>`).join('');
+if(f.includes('w'))s+=[-1.5,-.9,.9,1.5].map(m=>`<path d="M0,${-ry+3} Q${m*rx},0 0,${ry-3}" fill="none" stroke="${k}" stroke-width="6" stroke-linecap="round" opacity=".6"/>`).join('');
+if(f.includes('x')){const id='lwc'+(uid++);let l='';for(let i=-4;i<=4;i++)l+=`M${i*22-60},-60 l120,120 M${i*22+60},-60 l-120,120 `;s+=`<clipPath id="${id}"><ellipse rx="${rx-2}" ry="${ry-2}"/></clipPath><path clip-path="url(#${id})" d="${l}" fill="none" stroke="${k}" stroke-width="1.5" opacity=".5"/>`}
+if(f.includes('b'))s+=`<ellipse cx="${rx*.42}" cy="${-ry*.2}" rx="${rx*.36}" ry="${ry*.42}" fill="#f08a7a" opacity=".3"/>`;
+if(f.includes('r'))s+=`<path d="M0,${-ry+3} Q12,${-ry*.6} 5,${-ry*.28}" fill="none" stroke="${k}" stroke-width="2.5" stroke-linecap="round"/>`;
+if(f.includes('c'))s+=`<path d="M-9,${-ry+3} l4,7 l5,-6 l5,6 l4,-7 l-3,11 h-12z" fill="${k}"/>`;
+s+=shine(-rx*.48,-ry*.52,rx*.18)+face(ry*.18,ry<30?.85:1);return{svg:s,b:ry,w:rx}}
+if(o.t==='p'){if(f.includes('s'))s+=stem(-50);if(f.includes('e'))s+=stem(-52,1);if(f.includes('l'))s+=leaf(-50);
+s+=`<path d="${PEAR}" fill="${c}" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>`;
+if(f.includes('a'))s+=`<path d="${PEAR}" fill="#f1f3c4" transform="scale(.8)"/><circle cx="0" cy="24" r="15" fill="#b98a62" stroke="#96694a" stroke-width="2.5"/>`+shine(-5,19,5)+face(-12,.72);
+else{if(f.includes('e'))s+=cap(-40);s+=shine(-14,-6,7)+face(20)}
+return{svg:s,b:54,w:38}}
+if(o.t==='star'){s=`<path d="M0,-42 Q4,-4 42,0 Q4,4 0,42 Q-4,4 -42,0 Q-4,-4 0,-42Z" fill="${c}" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>`+face(-2,.5);
+d=`<circle cx="52" cy="70" r="4" fill="${c}"/><circle cx="150" cy="60" r="5" fill="${c}"/><circle cx="146" cy="150" r="3.5" fill="${c}"/>`;return{svg:s,b:42,w:30,deco:d}}
+if(o.t==='poppy'){s=`<ellipse rx="30" ry="26" fill="${c}" stroke="${k}" stroke-width="3" transform="rotate(-12)"/><g fill="none" stroke="#fff" stroke-width="1.5" opacity=".4"><circle cx="-13" cy="-13" r="3.5"/><circle cx="1" cy="-17" r="3.5"/><circle cx="15" cy="-13" r="3.5"/></g>`+face(4,.9);
+d=`<path d="M158,62 Q170,110 162,156" fill="none" stroke="${GK}" stroke-width="3" stroke-linecap="round"/><g fill="#f4a39a" stroke="#e07f76" stroke-width="2"><circle cx="150" cy="50" r="12"/><circle cx="166" cy="50" r="12"/><circle cx="150" cy="66" r="12"/><circle cx="166" cy="66" r="12"/></g><circle cx="158" cy="58" r="6" fill="#5b5470"/>`+mini(46,150,c,k)+mini(60,160,c,k)+mini(38,164,c,k);return{svg:s,b:26,w:30,deco:d}}
+if(o.t==='sesame'){s=`<path d="M0,-34 C22,-14 24,14 0,32 C-24,14 -22,-14 0,-34Z" fill="${c}" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>`+shine(-8,-10,5)+face(6,.8);
+d=mini(44,148,c,k)+mini(58,160,c,k)+mini(152,150,c,k)+mini(160,70,c,k);return{svg:s,b:32,w:22,deco:d}}
+if(o.t==='lentil'){s=`<ellipse rx="36" ry="31" fill="${c}" stroke="${k}" stroke-width="3"/><ellipse rx="28" ry="23" fill="none" stroke="#f6c3a0" stroke-width="3"/>`+shine(-15,-15,6)+face(2,.8);
+const m=(x,y,a,b)=>`<ellipse cx="${x}" cy="${y}" rx="11" ry="9" fill="${a}" stroke="${b}" stroke-width="2"/><ellipse cx="${x}" cy="${y}" rx="6.5" ry="5" fill="none" stroke="#fff" stroke-width="1.5" opacity=".6"/>`;
+d=m(46,150,'#c4d6a4','#9ab57a')+m(156,146,'#f3d98a','#d9b957')+m(150,56,c,k);return{svg:s,b:31,w:36,deco:d}}
+if(o.t==='rasp'){s=stem(-40,1)+[[-26,[-17,0,17]],[-11,[-26,-9,9,26]],[5,[-17,0,17]],[20,[-9,9]],[33,[0]]].map(r=>r[1].map(x=>`<circle cx="${x}" cy="${r[0]}" r="11.5" fill="${c}" stroke="${k}" stroke-width="2.5"/>`).join('')).join('')+cap(-36)+face(-6,.85);return{svg:s,b:44,w:34}}
+if(o.t==='straw'){s=`<path d="M0,52 C-38,34 -50,-8 -36,-28 C-22,-44 22,-44 36,-28 C50,-8 38,34 0,52Z" fill="${c}" stroke="${k}" stroke-width="3" stroke-linejoin="round"/>`+[[-24,-12],[24,-12],[-27,10],[27,10],[-13,30],[13,30],[0,40]].map(p=>`<ellipse cx="${p[0]}" cy="${p[1]}" rx="1.8" ry="2.8" fill="#fbe7a1"/>`).join('')+stem(-40,1)+cap(-36)+face(2);return{svg:s,b:52,w:36}}
+if(o.t==='banana'){s=`<path d="M-52,-14 C-30,44 30,50 54,-6 C58,-12 50,-18 46,-12 C26,14 -22,10 -42,-22 C-46,-28 -56,-22 -52,-14Z" fill="${c}" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><circle cx="-49" cy="-20" r="4" fill="#9a7656"/><circle cx="51" cy="-12" r="4" fill="#9a7656"/>`+face(16,.75);return{svg:s,b:36,w:50}}
+if(o.t==='carrot'){s=`<g fill="${GR}" stroke="${GK}" stroke-width="2"><ellipse cx="0" cy="-58" rx="6" ry="16" transform="rotate(-28 0 -44)"/><ellipse cx="0" cy="-58" rx="6" ry="16" transform="rotate(28 0 -44)"/><ellipse cx="0" cy="-60" rx="6" ry="16"/></g><path d="M-22,-40 C-22,-52 22,-52 22,-40 C20,0 8,50 0,58 C-8,50 -20,0 -22,-40Z" fill="${c}" stroke="${k}" stroke-width="3" stroke-linejoin="round"/><path d="M-13,2 h11 M3,18 h9 M-6,34 h8" fill="none" stroke="${k}" stroke-width="2" stroke-linecap="round" opacity=".6"/>`+face(-24,.72);return{svg:s,b:58,w:18}}
+if(o.t==='corn'){s=`<ellipse cx="0" cy="-4" rx="25" ry="52" fill="${c}" stroke="${k}" stroke-width="3"/><path d="M-17,-40 Q0,-35 17,-40 M-20,6 Q0,11 20,6 M-19,20 Q0,25 19,20 M-8,-52 Q-10,-4 -8,36 M8,-52 Q10,-4 8,36" fill="none" stroke="${k}" stroke-width="1.5" opacity=".4"/>`+face(-16,.78)+`<path d="M0,56 C-30,56 -40,20 -30,-12 C-22,10 -12,30 0,40Z" fill="${GR}" stroke="${GK}" stroke-width="2.5" stroke-linejoin="round"/><path d="M0,56 C30,56 40,20 30,-12 C22,10 12,30 0,40Z" fill="${GR}" stroke="${GK}" stroke-width="2.5" stroke-linejoin="round"/>`;return{svg:s,b:56,w:28}}
+if(o.t==='cloud'){if(o.v)s+=`<path d="M-50,-4 C-54,30 -24,48 0,46 C24,48 54,30 50,-4 C40,20 20,30 0,30 C-20,30 -40,20 -50,-4Z" fill="${GR}" stroke="${GK}" stroke-width="2.5" stroke-linejoin="round"/>`;
+else s+=`<rect x="-12" y="8" width="24" height="44" rx="10" fill="#c5e3ad" stroke="${k}" stroke-width="3"/>`;
+s+=[[-28,-8,20],[28,-8,20],[0,-24,24],[-13,6,19],[13,6,19]].concat(o.v?[[0,14,22]]:[]).map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="${p[2]}" fill="${c}" stroke="${k}" stroke-width="2.5"/>`).join('')+face(-6,.82);return{svg:s,b:o.v?46:52,w:40}}
+const id='lwc'+(uid++);let l='';for(let i=-4;i<=4;i++)l+=`M${i*18-60},-40 l120,120 M${i*18+60},-40 l-120,120 `;
+s=[-40,-20,0,20,40].map(a=>`<path d="M0,-26 Q-9,-50 0,-72 Q9,-50 0,-26Z" transform="rotate(${a} 0 -26)" fill="${GR}" stroke="${GK}" stroke-width="2.5" stroke-linejoin="round"/>`).join('')+`<ellipse cx="0" cy="14" rx="35" ry="44" fill="${c}" stroke="${k}" stroke-width="3"/><clipPath id="${id}"><ellipse cx="0" cy="14" rx="33" ry="42"/></clipPath><path clip-path="url(#${id})" d="${l}" fill="none" stroke="${k}" stroke-width="1.5" opacity=".45"/>`+face(12,.9);return{svg:s,b:58,w:35}}
+const SPK='<path d="M30,40 q2,6 8,8 q-6,2 -8,8 q-2,-6 -8,-8 q6,-2 8,-8z" fill="#fff"/><path d="M174,118 q2,6 8,8 q-6,2 -8,8 q-2,-6 -8,-8 q6,-2 8,-8z" fill="#fff"/>';
+function illo(o,w,tri){const s=.85+.55*Math.min(w,40)/40,B=body(o),bg=['#fdf1c7','#dcebf5','#e2eddb'][tri-1];
+return `<svg viewBox="0 0 200 200" width="210" height="210" role="img" aria-label="Illustration of a ${o.n}"><circle cx="100" cy="100" r="96" fill="${bg}"/>${SPK}${B.deco||''}<ellipse cx="100" cy="${Math.min(190,104+B.b*s+5).toFixed(1)}" rx="${(B.w*s*.8).toFixed(1)}" ry="6" fill="${INK}" opacity=".1"/><g transform="translate(100,104) scale(${s.toFixed(2)})">${B.svg}</g></svg>`}
+const art=n=>/^[aeiou]/.test(n)?'an':'a';
+const V=[
+['You made all the delicate, inner parts of my body and knit me together in my mother’s womb.','Psalm 139:13','Every tiny detail of your little one is being shaped with intention, right now.'],
+['Children are a gift from the LORD; they are a reward from him.','Psalm 127:3','Before you have done a single thing to earn it, you have been given a gift.'],
+['I asked the LORD to give me this boy, and he has granted my request.','1 Samuel 1:27','Hannah’s prayer was heard. Yours are too.'],
+['but Mary kept all these things in her heart and thought about them often.','Luke 2:19','Slow down and notice today. These are the days you will treasure.'],
+['I will comfort you there in Jerusalem as a mother comforts her child.','Isaiah 66:13','The comfort you will give your child is the comfort being offered to you.'],
+['But when I am afraid, I will put my trust in you.','Psalm 56:3','Fear may visit, but it doesn’t get to stay. Hand it over, breath by breath.'],
+['The LORD is my shepherd; I have all that I need.','Psalm 23:1','You are led, provided for and never walking this path alone.']];
+const AFF=['My baby and I are a beautiful team.','I soften my shoulders and welcome peace.','Every wave rises, peaks and fades.','I am strong and gentle at the same time.','I meet each moment with calm and courage.','I am surrounded by love.','I release what I cannot control and return to my breath.','My body knows how to grow this baby.','Each breath brings me closer to meeting my baby.','I trust my body, my baby and my God.','Peace fills my mind and softens my body.','I was made for this, and I am not doing it alone.','I breathe in calm and breathe out tension.','I welcome my baby with joy and confidence.','I am held, I am guided, I am ready.','However my baby arrives, I will meet them with love.'];
+const MS=[[0,'The beginning','seeding','#e2eddb'],[14,'Second trimester begins','flower','#fdf1c7'],[14,'Find out baby’s gender — independent imaging from today','gift','#fbe0d2'],[20,'Halfway there','flag','#dcebf5'],[28,'Third trimester begins','sun','#fdf1c7'],[37,'The home stretch','star','#e9e2f3'],[40,'Expected arrival','heart','#fbe0d2']];
+const TABS=[['today','Today','sun'],['growth','Growth','seeding'],['weight','Weight','chart-line'],['birth','Birth','wind'],['edit','Edit','adjustments-horizontal']];
+function drawNav(){nav.innerHTML=TABS.map(t=>`<button data-act="tab" data-id="${t[0]}" class="${tab===t[0]?'on':''}">${ti(t[2],20)}<span>${t[1]}</span></button>`).join('')}
+function streak(){if(!S.habits.length)return 0;const dn=k=>{const c=S.checks[k]||{};return S.habits.every(h=>c[h.id])};let k=todayKey(),n=0;if(!dn(k))k=addDays(k,-1);while(dn(k)&&n<400){n++;k=addDays(k,-1)}return n}
+function dateNav(){const isT=sel===todayKey();return `<div class="cd" style="padding:8px"><div style="display:grid;grid-template-columns:44px 44px minmax(0,1fr) 44px 44px;align-items:center;gap:2px">
+<button class="gh" style="padding:0" data-act="day" data-id="-7" aria-label="Back one week">${ti('chevrons-left')}</button><button class="gh" style="padding:0" data-act="day" data-id="-1" aria-label="Previous day">${ti('chevron-left')}</button>
+<div style="text-align:center"><div style="font-weight:500">${isT?'Today':fmt(sel,{weekday:'long',day:undefined,month:undefined,year:undefined})}</div><div class="mu">${fmt(sel)}</div></div>
+<button class="gh" style="padding:0" data-act="day" data-id="1" aria-label="Next day">${ti('chevron-right')}</button><button class="gh" style="padding:0" data-act="day" data-id="7" aria-label="Forward one week">${ti('chevrons-right')}</button></div>
+${isT?'':'<div style="text-align:center;margin-top:4px"><button data-act="now" style="min-height:36px;font-size:13px">Back to today</button></div>'}</div>`}
+function vToday(){const p=preg(sel),o=p.days<0?SZ[0]:SZ[Math.min(40,p.w)];
+const v=V[((Math.floor(utc(sel)/DAY)%V.length)+V.length)%V.length];
+const c=S.checks[sel]||{},done=S.habits.filter(h=>c[h.id]).length,all=S.habits.length>0&&done===S.habits.length,n=S.water[sel]||0,st=streak();
+const nx=MS.map(m=>({m,d:diff(addDays(p.lmp,m[0]*7),sel)})).find(x=>x.d>0);
+const left=p.left>1?p.left+' days':p.left===1?'1 day':p.left===0?'Due today':'Any moment';
+const tri=['First','Second','Third'][p.tri-1]+' trimester';
+let drops='';const tot=Math.max(S.goal,n);for(let i=1;i<=tot;i++)drops+=`<button class="gh" style="padding:0" data-act="drop" data-id="${i}" aria-label="Glass ${i}"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M12,2.5 C8,8.5 4.5,12 4.5,15.5 a7.5,7.5 0 0 0 15,0 C19.5,12 16,8.5 12,2.5Z" fill="${i<=n?'#9fc4e0':'#fffdf9'}" stroke="${i<=n?'#6f9fc4':'#c9d9e6'}" stroke-width="1.6" stroke-linejoin="round"/>${i<=n?'<ellipse cx="9" cy="14.5" rx="1.5" ry="2.5" fill="#fff" opacity=".7"/>':''}</svg></button>`;
+return dateNav()+`<div class="cd" style="text-align:center">${illo(o,p.days<0?0:p.w,p.tri)}
+<div class="sf" style="font-size:20px;line-height:1.3;margin-top:6px">${p.days<0?'Your journey begins '+fmt(p.lmp):'Baby is about the size of '+art(o.n)+' '+o.n}</div>
+<div class="g2" style="margin-top:12px;text-align:left"><div class="tile" style="background:#e2eddb"><div class="mu" style="color:#5f7d58">Gestational age</div><div style="font-size:22px;font-weight:500;color:#3f5a3a">${p.days<0?'Not yet':p.w+'w '+p.d+'d'}</div></div>
+<div class="tile" style="background:#dcebf5"><div class="mu" style="color:#4f7391">${p.left>0?'To go':'Estimated date'}</div><div style="font-size:22px;font-weight:500;color:#34566f">${left}</div></div></div>
+<div class="row" style="justify-content:space-between;margin-top:12px"><span class="mu">${tri}</span><span class="mu">${Math.round(p.pct)}% of the way</span></div>
+<div class="bar" style="margin-top:4px"><i style="width:${p.pct.toFixed(1)}%;background:#f3b99a"></i></div>
+<div class="mu" style="margin-top:8px">Due ${fmt(S.due)}${nx?' · '+esc(nx.m[1].split(' —')[0])+' in '+nx.d+(nx.d===1?' day':' days'):''}</div></div>
+<div class="cd" style="background:#fdf6dc;border-color:#f1e3b0;text-align:center"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3v18M7 8.5h10" fill="none" stroke="#b79a4a" stroke-width="2" stroke-linecap="round"/></svg>
+<div class="mu" style="color:#8a7434">Today’s Scripture · NLT</div>
+<div class="sf" style="font-size:21px;line-height:1.45;margin:8px 0;color:#4b4657">${v[0]}</div><div style="font-weight:500;color:#8a7434">${v[1]}</div><div style="margin-top:8px;font-size:14px;color:#6e6880">${v[2]}</div></div>
+<div class="cd"><div class="row" style="justify-content:space-between"><div class="hd" style="margin:0">Daily rituals</div><span class="mu">${S.habits.length?done+' of '+S.habits.length:''}</span></div>
+${S.habits.length?S.habits.map(h=>`<button data-act="chk" data-id="${esc(h.id)}" class="row" style="width:100%;text-align:left;margin-top:8px;min-height:52px;background:${c[h.id]?'#e2eddb':'#fffdf9'};border-color:${c[h.id]?'#b9cbb0':'#e3dac9'}"><span style="width:28px;height:28px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;background:${c[h.id]?'#7f9a78':'#fff'};border:1.5px solid ${c[h.id]?'#7f9a78':'#cfc6b5'};color:#fff">${c[h.id]?ti('check',18):''}</span><span style="color:${c[h.id]?'#3f5a3a':'#4b4657'}">${esc(h.name)}</span></button>`).join(''):'<div class="mu" style="margin-top:6px">Add your rituals in the Edit tab.</div>'}
+${all?'<div style="margin-top:10px;color:#5f7d58;font-size:14px">All done for the day. Beautifully kept.</div>':''}${st>0?`<div class="mu" style="margin-top:6px">${st}-day ritual streak</div>`:''}</div>
+<div class="cd" style="background:#f1f7fb;border-color:#d5e4ef"><div class="row" style="justify-content:space-between"><div class="hd" style="margin:0">Water</div><span class="mu" style="color:#4f7391">${n} of ${S.goal} glasses · ${(n*S.ml).toLocaleString('en-AU')} mL</span></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));margin-top:6px">${drops}</div>
+<div class="bar" style="background:#dfeaf2;margin-top:6px"><i style="width:${Math.min(100,n/S.goal*100).toFixed(0)}%;background:#9fc4e0"></i></div>
+<div class="g2" style="margin-top:10px"><button data-act="wminus" aria-label="Remove a glass">${ti('minus',18)}</button><button data-act="wplus" aria-label="Add a glass">${ti('plus',18)} Glass</button></div></div>
+<div class="cd"><div class="hd">A note to baby</div><textarea data-in="note" placeholder="Dear little one, today I…">${esc(S.notes[sel]||'')}</textarea><div class="mu" style="margin-top:4px">Saves as you type, one note per day.</div></div>`}
+function vGrowth(){const p=preg(sel),cur=Math.max(0,p.days);
+const tr=[['First trimester','Weeks 1–13',0,97,'#fdf1c7','#8a7434'],['Second trimester','Weeks 14–27',98,195,'#dcebf5','#34566f'],['Third trimester','Week 28 onward',196,280,'#e2eddb','#3f5a3a']];
+let nextSeen=false;
+return `<div class="cd"><div class="mu">${sel===todayKey()?'Today':fmt(sel)}</div><div class="sf" style="font-size:24px">${p.days<0?'Before the beginning':'Week '+p.w+', day '+p.d}</div>
+<div class="bar" style="margin-top:10px"><i style="width:${p.pct.toFixed(1)}%;background:#f3b99a"></i></div>
+${tr.map((t,i)=>{const on=p.tri===i+1&&p.days>=0;return `<div class="tile" style="background:${t[4]};margin-top:10px;border:${on?'2px solid '+t[5]:'2px solid transparent'}"><div class="row" style="justify-content:space-between"><span style="font-weight:500;color:${t[5]}">${t[0]}</span><span style="font-size:13px;color:${t[5]}">${on?'You are here':t[1]}</span></div><div style="font-size:13px;color:${t[5]}">${fmt(addDays(p.lmp,t[2]),{year:undefined})} – ${fmt(addDays(p.lmp,t[3]))}</div></div>`}).join('')}</div>
+<div class="cd"><div class="hd">Milestones</div>${MS.map(m=>{const dt=addDays(p.lmp,m[0]*7),d=diff(dt,sel),past=d<=0&&cur>=m[0]*7,isNext=!past&&!nextSeen;if(isNext)nextSeen=true;
+return `<div class="row" style="padding:10px;margin-top:8px;border-radius:16px;align-items:flex-start;border:${isNext?'2px solid #f3b99a':'1px solid #ece4d6'};background:${past?'#f8f3e9':'#fffdf9'}"><span style="width:40px;height:40px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;background:${past?'#efe8da':m[3]};color:${past?'#a59e8c':'#4b4657'}">${ti(past?'check':m[2],20)}</span><div style="min-width:0"><div style="font-weight:500;color:${past?'#857f92':'#4b4657'}">${m[1]}</div><div class="mu">${fmt(dt)} · ${d===0?'today':past?'reached':'in '+d+(d===1?' day':' days')}</div></div></div>`}).join('')}</div>`}
+function chart(ws){const W=320,H=150,l=38,r=12,t=14,b=24,xs=ws.map(x=>utc(x.date)),ys=ws.map(x=>x.kg);
+const x0=Math.min(...xs),x1=Math.max(...xs),lo=Math.min(...ys),hi=Math.max(...ys),y0=lo-1,y1=hi+1;
+const X=v=>x1===x0?l+(W-l-r)/2:l+(v-x0)/(x1-x0)*(W-l-r),Y=v=>t+(y1-v)/(y1-y0)*(H-t-b);
+const pts=ws.map(x=>X(utc(x.date)).toFixed(1)+','+Y(x.kg).toFixed(1));
+const sh=k=>fmt(k,{year:undefined,month:'short'});
+return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Weight over time" style="margin-top:8px"><path d="M${l},${Y(hi).toFixed(1)} H${W-r} M${l},${Y(lo).toFixed(1)} H${W-r}" stroke="#ece4d6" stroke-width="1" stroke-dasharray="3 4" fill="none"/>
+<text x="${l-6}" y="${(Y(hi)+4).toFixed(1)}" text-anchor="end" font-size="11" fill="#857f92">${hi.toFixed(1)}</text>${hi!==lo?`<text x="${l-6}" y="${(Y(lo)+4).toFixed(1)}" text-anchor="end" font-size="11" fill="#857f92">${lo.toFixed(1)}</text>`:''}
+${ws.length>1?`<polyline points="${pts.join(' ')}" fill="none" stroke="#7f9a78" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`:''}
+${pts.map(q=>`<circle cx="${q.split(',')[0]}" cy="${q.split(',')[1]}" r="4.5" fill="#f3b99a" stroke="#fffdf9" stroke-width="2"/>`).join('')}
+<text x="${l}" y="${H-6}" font-size="11" fill="#857f92">${sh(ws[0].date)}</text>${ws.length>1&&x1!==x0?`<text x="${W-r}" y="${H-6}" text-anchor="end" font-size="11" fill="#857f92">${sh(ws[ws.length-1].date)}</text>`:''}</svg>`}
+function vWeight(){const ws=S.weights,f=ws[0],la=ws[ws.length-1],ch=f?Math.round((la.kg-f.kg)*10)/10:0;
+return `<div class="cd"><div class="hd">Log weight</div><div class="g2"><div><label class="mu" for="lw-wd">Date</label><input type="date" id="lw-wd" value="${wForm.d||sel}"></div><div><label class="mu" for="lw-wk">Kilograms</label><input type="number" id="lw-wk" inputmode="decimal" step="0.1" placeholder="64.5" value="${esc(wForm.k)}"></div></div>
+<div id="lw-werr" style="font-size:13px;color:#a8503f"></div><button class="pr" data-act="wsave" style="width:100%;margin-top:10px">Save entry</button></div>
+<div class="cd">${f?`<div class="g2"><div class="tile" style="background:#fdf1c7"><div class="mu" style="color:#8a7434">First recorded</div><div style="font-size:20px;font-weight:500;color:#6e5a1f">${f.kg.toFixed(1)} kg</div></div><div class="tile" style="background:#dcebf5"><div class="mu" style="color:#4f7391">Latest</div><div style="font-size:20px;font-weight:500;color:#34566f">${la.kg.toFixed(1)} kg</div></div></div>
+<div class="mu" style="margin-top:8px">Total change ${ch>0?'+':ch<0?'−':''}${Math.abs(ch).toFixed(1)} kg</div>${chart(ws)}`:'<div class="hd">Your weight story starts here</div><div class="mu">Save your first entry and the graph will appear.</div>'}</div>
+${f?`<div class="cd"><div class="hd">Log, newest first</div>${ws.slice().reverse().map(x=>`<div class="row" style="padding:6px 0;border-top:1px solid #f1eadc"><div style="flex:1;min-width:0"><div>${x.kg.toFixed(1)} kg</div><div class="mu">${fmt(x.date)}</div></div><button class="gh" style="padding:0 10px" data-act="wedit" data-id="${x.date}" aria-label="Correct entry">${ti('edit',18)}</button><button class="${delArm===x.date?'':'gh'}" style="padding:0 10px" data-act="wdel" data-id="${x.date}" aria-label="Delete entry">${delArm===x.date?'Delete?':ti('trash',18)}</button></div>`).join('')}</div>`:''}`}
+const durTxt=ms=>{const s=Math.round(ms/1000),m=Math.floor(s/60);return m?m+' min '+(s%60)+' sec':s+' sec'};
+function affHtml(){const a=AFF[(((Math.floor(utc(sel)/DAY)+affOff)%AFF.length)+AFF.length)%AFF.length],fv=S.favs.includes(a);
+return `<div class="sf" style="font-size:22px;line-height:1.4;text-align:center;padding:6px 4px">${a}</div><div class="g2" style="margin-top:10px"><button data-act="aff">Another</button><button data-act="fav" data-id="${esc(a)}" style="background:${fv?'#fbe0d2':'#fffdf9'};border-color:${fv?'#f3b99a':'#e3dac9'}">${ti('heart',18)} ${fv?'Kept':'Keep'}</button></div>`}
+function favHtml(){return S.favs.length?S.favs.map((a,i)=>`<div class="row" style="padding:6px 0;border-top:1px solid #f1eadc"><div class="sf" style="flex:1">${esc(a)}</div><button class="gh" style="padding:0 10px" data-act="unfav" data-id="${i}" aria-label="Remove">${ti('x',18)}</button></div>`).join(''):'<div class="mu">Tap Keep on any affirmation to collect it here.</div>'}
+function waveHtml(){const ws=S.waves.slice(-5).reverse();
+return `<button class="${waveStart?'':'pr'}" data-act="wave" style="width:100%;min-height:52px">${waveStart?'Wave has faded · <span id="lw-wt">0 sec</span>':'A wave begins'}</button>
+${ws.length?ws.map((w,i)=>{const pv=S.waves[S.waves.length-2-i];return `<div class="row" style="justify-content:space-between;padding:6px 0;border-top:1px solid #f1eadc;margin-top:${i?0:10}px"><span>${durTxt(w.e-w.s)}</span><span class="mu">${pv?durTxt(w.s-pv.s)+' after the last began':'first wave'}</span></div>`}).join('')+'<button class="gh" data-act="wclear" style="font-size:13px;min-height:36px;padding:0">Clear waves</button>':'<div class="mu" style="margin-top:8px">Time each wave and the rest between them. Useful for practice and for the day itself.</div>'}`}
+function vBirth(){return `<div class="cd" style="text-align:center;background:#f6f2fa;border-color:#e4dbf1"><div class="mu">Soft breath. Strong heart.</div><div id="lw-aff" style="text-align:left">${affHtml()}</div></div>
+<div class="cd" style="text-align:center"><div class="hd">Breathe with me</div><div style="height:180px;display:flex;align-items:center;justify-content:center"><div id="lw-orb"><div></div></div></div>
+<div id="lw-cue" class="sf" style="font-size:20px;min-height:30px">Ready when you are</div>
+<div class="g2" style="margin-top:10px"><button data-act="bmode" data-id="0" id="lw-m0">Calm · in 4, out 8</button><button data-act="bmode" data-id="1" id="lw-m1">Gentle · in 4, out 6</button></div>
+<button class="pr" data-act="breath" id="lw-bb" style="width:100%;margin-top:10px">Begin</button></div>
+<div class="cd"><div class="hd">Wave timer</div><div id="lw-wave">${waveHtml()}</div></div>
+<div class="cd"><div class="hd">My birth wishes</div><textarea data-in="wishes" style="min-height:150px" placeholder="The atmosphere I imagine, how I want to feel, the words I want to hear…">${esc(S.wishes)}</textarea><div class="mu" style="margin-top:4px">Saves as you type.</div></div>
+<div class="cd"><div class="hd">Affirmations I’m keeping</div><div id="lw-favs">${favHtml()}</div></div>`}
+function modeBtns(){[0,1].forEach(i=>{const b=root.querySelector('#lw-m'+i);if(b){b.style.background=breath.mode===i?'#e9e2f3':'#fffdf9';b.style.borderColor=breath.mode===i?'#cdbfe3':'#e3dac9'}})}
+function stopBreath(){breath.on=false;clearTimeout(breath.timer);const o=root.querySelector('#lw-orb'),c=root.querySelector('#lw-cue'),b=root.querySelector('#lw-bb');if(o){o.style.transitionDuration='1s';o.style.transform='scale(.55)'}if(c)c.textContent='Ready when you are';if(b)b.textContent='Begin'}
+function breathStep(inh){const o=root.querySelector('#lw-orb'),c=root.querySelector('#lw-cue');if(!o||!breath.on)return;const d=inh?4:(breath.mode?6:8);o.style.transitionDuration=d+'s';o.style.transform=inh?'scale(1)':'scale(.55)';c.textContent=inh?'Breathe in':'Breathe out';breath.timer=setTimeout(()=>breathStep(!inh),d*1000)}
+function dueLine(p){return p.days<0?'The journey begins '+fmt(p.lmp)+'.':'That makes today '+p.w+'w '+p.d+'d.'}
+function vEdit(){const p=preg(todayKey());
+return `<div class="cd"><div class="hd">Estimated due date</div><input type="date" data-ch="due" value="${S.due}"><div class="mu" id="lw-duep" style="margin-top:6px">${dueLine(p)}</div></div>
+<div class="cd"><div class="hd">Daily rituals</div>${S.habits.map(h=>`<div class="row" style="margin-bottom:8px"><input type="text" data-ch="hname" data-id="${esc(h.id)}" value="${esc(h.name)}" maxlength="40" aria-label="Ritual name"><button data-act="hdel" data-id="${esc(h.id)}" style="padding:0 12px" aria-label="Remove ritual">${ti('trash',18)}</button></div>`).join('')}
+<div class="row"><input type="text" id="lw-hnew" maxlength="40" placeholder="Evening stretch"><button class="pr" data-act="hadd" style="flex:none">Add</button></div><div id="lw-herr" style="font-size:13px;color:#a8503f"></div><div class="mu" style="margin-top:6px">Tracking labels only. Past ticks stay with each date.</div></div>
+<div class="cd"><div class="hd">Water</div><div class="g2"><div><label class="mu">Glasses per day</label><input type="number" data-ch="goal" min="1" max="20" step="1" inputmode="numeric" value="${S.goal}"></div><div><label class="mu">mL per glass</label><input type="number" data-ch="ml" min="50" max="1000" step="10" inputmode="numeric" value="${S.ml}"></div></div></div>
+<div class="cd"><div class="hd">Backup</div><button data-act="export" style="width:100%">Create backup</button><div id="lw-exp"></div>
+<div class="mu" style="margin:12px 0 4px">Restore from a backup</div><textarea id="lw-imp" style="min-height:70px;font-size:13px" placeholder="Paste backup text"></textarea><div id="lw-ierr" style="font-size:13px;color:#a8503f"></div><button data-act="import" id="lw-ib" style="width:100%;margin-top:8px">Restore</button>
+<div class="mu" style="margin-top:10px">Your journal lives only in this browser on this device. Nothing is uploaded. Clearing browser data removes it, so keep a backup.${durable?'':' This browser is not saving between visits.'}</div></div>
+<div class="mu" style="text-align:center;margin-top:12px;font-size:12px">Scripture from the Holy Bible, New Living Translation © Tyndale House Foundation · Little Wonder v3.0</div>`}
+function render(){drawNav();main.innerHTML={today:vToday,growth:vGrowth,weight:vWeight,birth:vBirth,edit:vEdit}[tab]();if(tab==='birth')modeBtns()}
+function setW(n){n=Math.max(0,Math.min(40,n));if(n)S.water[sel]=n;else delete S.water[sel];save();render()}
+const ACT={
+tab(id){if(breath.on)stopBreath();tab=id;delArm=null;impArm=false;render();window.scrollTo(0,0)},
+day(id){sel=addDays(sel,+id);render()},now(){sel=todayKey();render()},
+chk(id){const c=S.checks[sel]||(S.checks[sel]={});if(c[id])delete c[id];else c[id]=true;if(!Object.keys(c).length)delete S.checks[sel];save();render()},
+drop(id){const n=+id,cur=S.water[sel]||0;setW(cur===n?n-1:n)},wplus(){setW((S.water[sel]||0)+1)},wminus(){setW((S.water[sel]||0)-1)},
+wsave(){const d=root.querySelector('#lw-wd').value,k=parseFloat(String(root.querySelector('#lw-wk').value).replace(',','.')),er=root.querySelector('#lw-werr');
+if(!isKey(d)){er.textContent='Choose a date first.';return}if(!(k>=20&&k<=300)){er.textContent='Enter a weight in kilograms, such as 64.5.';return}
+S.weights=S.weights.filter(x=>x.date!==d);S.weights.push({date:d,kg:Math.round(k*10)/10});S.weights.sort((a,b)=>utc(a.date)-utc(b.date));save();wForm={d:null,k:''};delArm=null;render();toast('Entry saved')},
+wedit(id){const x=S.weights.find(w=>w.date===id);if(!x)return;wForm={d:id,k:String(x.kg)};delArm=null;render();toast('Change the number, then save')},
+wdel(id){if(delArm!==id){delArm=id;render();return}S.weights=S.weights.filter(x=>x.date!==id);delArm=null;save();render();toast('Entry removed')},
+aff(){affOff++;root.querySelector('#lw-aff').innerHTML=affHtml()},
+fav(id){const i=S.favs.indexOf(id);if(i>=0)S.favs.splice(i,1);else S.favs.push(id);save();root.querySelector('#lw-aff').innerHTML=affHtml();root.querySelector('#lw-favs').innerHTML=favHtml()},
+unfav(id){S.favs.splice(+id,1);save();root.querySelector('#lw-aff').innerHTML=affHtml();root.querySelector('#lw-favs').innerHTML=favHtml()},
+breath(){if(breath.on){stopBreath();return}breath.on=true;root.querySelector('#lw-bb').textContent='Pause';breathStep(true)},
+bmode(id){breath.mode=+id;modeBtns();if(breath.on){clearTimeout(breath.timer);breathStep(true)}},
+wave(){if(waveStart){S.waves.push({s:waveStart,e:Date.now()});S.waves=S.waves.slice(-30);waveStart=null;save()}else waveStart=Date.now();root.querySelector('#lw-wave').innerHTML=waveHtml()},
+wclear(){S.waves=[];save();root.querySelector('#lw-wave').innerHTML=waveHtml()},
+hadd(){const i=root.querySelector('#lw-hnew'),v=i.value.trim();if(!v){root.querySelector('#lw-herr').textContent='Type a ritual name first.';return}S.habits.push({id:'h'+Date.now().toString(36),name:v});save();render()},
+hdel(id){S.habits=S.habits.filter(h=>h.id!==id);save();render()},
+export(){root.querySelector('#lw-exp').innerHTML='<textarea id="lw-ex" readonly style="min-height:90px;font-size:13px;margin-top:8px"></textarea><button data-act="copy" style="width:100%;margin-top:8px">'+ti('copy',18)+' Copy backup</button>';root.querySelector('#lw-ex').value=JSON.stringify(S)},
+copy(){const t=root.querySelector('#lw-ex');if(!t)return;t.focus();t.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t.value).then(()=>toast('Backup copied'),()=>toast(ok?'Backup copied':'Select the text and copy it'));else toast(ok?'Backup copied':'Select the text and copy it')},
+import(){const er=root.querySelector('#lw-ierr'),b=root.querySelector('#lw-ib');let d;try{d=JSON.parse(root.querySelector('#lw-imp').value)}catch(e){d=null}
+if(!d||typeof d!=='object'||Array.isArray(d)){er.textContent='That doesn’t look like a Little Wonder backup. Paste the full text.';impArm=false;b.textContent='Restore';return}
+if(!impArm){impArm=true;er.textContent='';b.textContent='Replace current journal with this backup';return}impArm=false;S=norm(d);save();sel=todayKey();render();toast('Journal restored')}};
+root.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||!root.contains(b))return;const f=ACT[b.dataset.act];if(f)f(b.dataset.id)});
+root.addEventListener('input',e=>{const t=e.target,k=t.dataset&&t.dataset.in;
+if(k==='note'){if(t.value)S.notes[sel]=t.value;else delete S.notes[sel];save()}else if(k==='wishes'){S.wishes=t.value;save()}
+if(t.id==='lw-wd'||t.id==='lw-wk'){const er=root.querySelector('#lw-werr');if(er)er.textContent=''}
+if(t.id==='lw-hnew'){const er=root.querySelector('#lw-herr');if(er)er.textContent=''}
+if(t.id==='lw-imp'){impArm=false;const er=root.querySelector('#lw-ierr'),b=root.querySelector('#lw-ib');if(er)er.textContent='';if(b)b.textContent='Restore'}});
+root.addEventListener('change',e=>{const t=e.target,k=t.dataset&&t.dataset.ch;if(!k)return;
+if(k==='due'){if(isKey(t.value)){S.due=t.value;save();const l=root.querySelector('#lw-duep');if(l)l.textContent=dueLine(preg(todayKey()));toast('Due date updated')}else t.value=S.due}
+else if(k==='hname'){const h=S.habits.find(x=>x.id===t.dataset.id);if(h){const v=t.value.trim();if(v){h.name=v;save()}else t.value=h.name}}
+else if(k==='goal'){S.goal=clamp(t.value,1,20,S.goal);t.value=S.goal;save()}
+else if(k==='ml'){S.ml=clamp(t.value,50,1000,S.ml);t.value=S.ml;save()}});
+root.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='lw-hnew'){e.preventDefault();ACT.hadd()}});
+setInterval(()=>{if(!waveStart)return;const el=root.querySelector('#lw-wt');if(el)el.textContent=durTxt(Date.now()-waveStart)},1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&tab==='today'&&!root.querySelector('textarea:focus'))render()});
+render();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
